@@ -1,4 +1,5 @@
 /target
 /local
 /files
+/logs
 config.toml
