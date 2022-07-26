@@ -1,0 +1,92 @@
+thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Exec("error returned from database: incomplete input")', src/handlers/database.rs:93:49
+stack backtrace:
+   0: rust_begin_unwind
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/std/src/panicking.rs:584:5
+   1: core::panicking::panic_fmt
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/panicking.rs:143:14
+   2: core::result::unwrap_failed
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/result.rs:1785:5
+   3: core::result::Result<T,E>::unwrap
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/result.rs:1078:23
+   4: cloud_2::handlers::database::create_entries::{{closure}}
+             at ./src/handlers/database.rs:93:21
+   5: <core::future::from_generator::GenFuture<T> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/mod.rs:91:19
+   6: cloud_2::handlers::filesystem::sync_db::{{closure}}
+             at ./src/handlers/filesystem.rs:50:14
+   7: <core::future::from_generator::GenFuture<T> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/mod.rs:91:19
+   8: cloud_2::handlers::filesystem::watch_fs::{{closure}}
+             at ./src/handlers/filesystem.rs:33:40
+   9: <core::future::from_generator::GenFuture<T> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/mod.rs:91:19
+  10: cloud_2::main::{{closure}}
+             at ./src/main.rs:57:15
+  11: <core::future::from_generator::GenFuture<T> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/mod.rs:91:19
+  12: <tokio::task::local::RunUntil<T> as core::future::future::Future>::poll::{{closure}}::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:649:65
+  13: tokio::coop::with_budget::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:102:9
+  14: std::thread::local::LocalKey<T>::try_with
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/std/src/thread/local.rs:442:16
+  15: std::thread::local::LocalKey<T>::with
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/std/src/thread/local.rs:418:9
+  16: tokio::coop::with_budget
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:95:5
+  17: tokio::coop::budget
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:72:5
+  18: <tokio::task::local::RunUntil<T> as core::future::future::Future>::poll::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:649:42
+  19: tokio::macros::scoped_tls::ScopedKey<T>::set
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/macros/scoped_tls.rs:61:9
+  20: tokio::task::local::LocalSet::with
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:566:9
+  21: <tokio::task::local::RunUntil<T> as core::future::future::Future>::poll
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:639:9
+  22: tokio::task::local::LocalSet::run_until::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:512:18
+  23: <core::future::from_generator::GenFuture<T> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/mod.rs:91:19
+  24: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/future/future.rs:124:9
+  25: tokio::runtime::basic_scheduler::CoreGuard::block_on::{{closure}}::{{closure}}::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:507:48
+  26: tokio::coop::with_budget::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:102:9
+  27: std::thread::local::LocalKey<T>::try_with
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/std/src/thread/local.rs:442:16
+  28: std::thread::local::LocalKey<T>::with
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/std/src/thread/local.rs:418:9
+  29: tokio::coop::with_budget
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:95:5
+  30: tokio::coop::budget
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/coop.rs:72:5
+  31: tokio::runtime::basic_scheduler::CoreGuard::block_on::{{closure}}::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:507:25
+  32: tokio::runtime::basic_scheduler::Context::enter
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:361:19
+  33: tokio::runtime::basic_scheduler::CoreGuard::block_on::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:506:36
+  34: tokio::runtime::basic_scheduler::CoreGuard::enter::{{closure}}
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:564:57
+  35: tokio::macros::scoped_tls::ScopedKey<T>::set
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/macros/scoped_tls.rs:61:9
+  36: tokio::runtime::basic_scheduler::CoreGuard::enter
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:564:27
+  37: tokio::runtime::basic_scheduler::CoreGuard::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:497:9
+  38: tokio::runtime::basic_scheduler::BasicScheduler::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/basic_scheduler.rs:173:24
+  39: tokio::runtime::Runtime::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/runtime/mod.rs:475:46
+  40: tokio::task::local::LocalSet::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.18.2/src/task/local.rs:473:9
+  41: actix_rt::runtime::Runtime::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-rt-2.7.0/src/runtime.rs:80:9
+  42: actix_rt::system::SystemRunner::block_on
+             at /home/p0rtl/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-rt-2.7.0/src/system.rs:209:9
+  43: cloud_2::main
+             at ./src/main.rs:24:1
+  44: core::ops::function::FnOnce::call_once
+             at /rustc/fe5b13d681f25ee6474be29d748c65adcd91f69e/library/core/src/ops/function.rs:227:5
