@@ -1,5 +1,4 @@
 use actix_web::{App, HttpServer};
-use handlers::database::create_entry;
 use once_cell::sync::OnceCell;
 use sea_orm::{Database, DatabaseConnection};
 
@@ -12,6 +11,7 @@ pub use files_table::prelude::*;
 pub use handlers::config::Config;
 pub use handlers::database::*;
 pub use handlers::filesystem::*;
+pub use handlers::server::*;
 
 pub static DATABASE_CONNECTION: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
@@ -33,8 +33,10 @@ async fn main() -> std::io::Result<()> {
 
     watch_fs().await;
 
-    HttpServer::new(|| App::new())
-        .bind(("127.0.0.1", 8888))?
-        .run()
-        .await
+    start_server().await
+
+    // HttpServer::new(App::new)
+        // .bind(("127.0.0.1", 8888))?
+        // .run()
+        // .await
 }

@@ -1,10 +1,9 @@
-use crate::{create_entry, delete_entry, get_dir_contents, update_entry};
-use notify::{DebouncedEvent, DebouncedEvent::*, RecommendedWatcher, RecursiveMode, Watcher};
+use crate::{create_entry, delete_entry, update_entry};
+use notify::{Watcher, RecommendedWatcher, RecursiveMode, Config, event::{Event, EventKind, ModifyKind}};
 use std::{
     fs,
     path::{Path, PathBuf},
     sync::mpsc::channel,
-    time::Duration,
 };
 
 use crate::CONFIG;
@@ -18,39 +17,46 @@ pub fn new_file(file_path: PathBuf, file_data: Vec<u8>) -> Result<(), Box<dyn st
     Ok(())
 }
 
+pub fn normalize_path(file_path: PathBuf) -> PathBuf {
+    Path::new(&CONFIG.get().unwrap().storage.storage_dir).join(file_path)
+}
+
 pub async fn watch_fs() {
-    let (sender, receiver) = channel();
-    let mut watcher: RecommendedWatcher = Watcher::new(sender, Duration::from_secs(2)).unwrap();
+    let (sender, reciever) = channel();
+
+    let mut watcher = RecommendedWatcher::new(sender, Config::default()).unwrap();
+    
     watcher
         .watch(
-            &CONFIG.get().unwrap().storage.storage_dir,
+            &PathBuf::from(&CONFIG.get().unwrap().storage.storage_dir),
             RecursiveMode::Recursive,
         )
         .unwrap();
 
-    loop {
-        match receiver.recv() {
-            Ok(event) => sync_db(event).await,
-            Err(e) => println!("Watch Error: {:?}", e),
+    for res in reciever {
+        match res {
+            Ok(event) => {
+                sync_db(event).await;
+            },
+            Err(e) => println!("watch error: {:?}", e),
         }
     }
 }
 
-pub async fn sync_db(event: DebouncedEvent) {
-    match event {
-        Write(path) => {
-            create_entry(path).await.unwrap();
+pub async fn sync_db(event: Event) {
+    match event.kind {
+        EventKind::Create(_) => {
+            let create_path = event.paths.into_iter().next().unwrap();
+            create_entry(create_path).await.unwrap();
         }
-        Create(path) => {
-            create_entry(path).await.unwrap();
+        EventKind::Remove(_) => {
+            let delete_path = event.paths.into_iter().next().unwrap();
+            delete_entry(delete_path).await.unwrap();
         }
-        Remove(path) => {
-            let dir_contents =
-                get_dir_contents(PathBuf::from("/home/p0rtl/Sync/Code/cloud_2/files/dir1")).await;
-            println!("{:?}", dir_contents);
-            delete_entry(path).await.unwrap();
-        }
-        Rename(old_path, new_path) => {
+        EventKind::Modify(ModifyKind::Name(_)) => {
+            let mut paths_iter = event.paths.into_iter();
+            let old_path = paths_iter.next().unwrap();
+            let new_path = paths_iter.next().unwrap();
             update_entry(old_path, new_path).await.unwrap();
         }
         _ => {}

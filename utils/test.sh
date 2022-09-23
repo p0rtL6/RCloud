@@ -1,5 +1,7 @@
-mkdir files/dir1
-mkdir files/dir1/dir2
-touch files/dir1/file1
-touch files/dir1/dir2/file2
-# rm -r files/dir1
+for i in {1..10}; do
+    mkdir files/dir$i
+    for e in {1..10}; do
+        touch files/dir$i/file$e
+    done
+done
+

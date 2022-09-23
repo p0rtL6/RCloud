@@ -55,50 +55,47 @@ pub async fn create_entry(path: PathBuf) -> Result<(), ()> {
 
     let mut path_components = path.components().peekable();
     while let Some(component) = path_components.next() {
-        match component {
-            Component::Normal(component_name) => {
-                full_path.push(component_name);
-                if prefixed_path.is_file() && path_components.peek().is_none() {
-                    let file = FilesActiveModel {
-                        file_name: Set(component_name.to_str().unwrap().to_owned()),
-                        full_path: Set(full_path.to_str().unwrap().to_owned()),
-                        file_size: Set(bytes_to_kb(prefixed_path.metadata().unwrap().len())),
-                        parent_dir_id: Set(parent_dir_id),
-                        ..Default::default()
-                    };
-                    Files::insert(file)
-                        .on_conflict(
-                            OnConflict::column(FilesColumn::FullPath)
-                                .update_columns([FilesColumn::FileSize])
-                                .to_owned(),
-                        )
-                        .exec(db)
-                        .await
-                        .unwrap();
-                } else {
-                    let dir_lookup = Dirs::find()
-                        .filter(DirsColumn::FullPath.like(&full_path.to_str().unwrap()))
-                        .one(db)
-                        .await
-                        .unwrap();
-                    match dir_lookup {
-                        Some(current_dir) => {
-                            parent_dir_id = current_dir.dir_id;
-                        }
-                        None => {
-                            let dir = DirsActiveModel {
-                                dir_name: Set(component_name.to_str().unwrap().to_owned()),
-                                full_path: Set(full_path.to_str().unwrap().to_owned()),
-                                parent_dir_id: Set(parent_dir_id),
-                                ..Default::default()
-                            };
-                            let dir_result = Dirs::insert(dir).exec(db).await.unwrap();
-                            parent_dir_id = dir_result.last_insert_id;
-                        }
+        if let Component::Normal(component_name) = component {
+            full_path.push(component_name);
+            if prefixed_path.is_file() && path_components.peek().is_none() {
+                let file = FilesActiveModel {
+                    file_name: Set(component_name.to_str().unwrap().to_owned()),
+                    full_path: Set(full_path.to_str().unwrap().to_owned()),
+                    file_size: Set(bytes_to_kb(prefixed_path.metadata().unwrap().len())),
+                    parent_dir_id: Set(parent_dir_id),
+                    ..Default::default()
+                };
+                Files::insert(file)
+                    .on_conflict(
+                        OnConflict::column(FilesColumn::FullPath)
+                            .update_columns([FilesColumn::FileSize])
+                            .to_owned(),
+                    )
+                    .exec(db)
+                    .await
+                    .unwrap();
+            } else {
+                let dir_lookup = Dirs::find()
+                    .filter(DirsColumn::FullPath.like(full_path.to_str().unwrap()))
+                    .one(db)
+                    .await
+                    .unwrap();
+                match dir_lookup {
+                    Some(current_dir) => {
+                        parent_dir_id = current_dir.dir_id;
+                    }
+                    None => {
+                        let dir = DirsActiveModel {
+                            dir_name: Set(component_name.to_str().unwrap().to_owned()),
+                            full_path: Set(full_path.to_str().unwrap().to_owned()),
+                            parent_dir_id: Set(parent_dir_id),
+                            ..Default::default()
+                        };
+                        let dir_result = Dirs::insert(dir).exec(db).await.unwrap();
+                        parent_dir_id = dir_result.last_insert_id;
                     }
                 }
             }
-            _ => {}
         }
     }
 
@@ -117,12 +114,11 @@ pub async fn delete_entry(path: PathBuf) -> Result<(), ()> {
 
     let path = PathBuf::from("/").join(
         path.strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
-            .unwrap()
-            .to_path_buf(),
+            .unwrap(),
     );
 
     let dir_lookup = Dirs::find()
-        .filter(DirsColumn::FullPath.like(&path.to_str().unwrap()))
+        .filter(DirsColumn::FullPath.like(path.to_str().unwrap()))
         .one(db)
         .await
         .unwrap();
@@ -133,7 +129,7 @@ pub async fn delete_entry(path: PathBuf) -> Result<(), ()> {
         }
         None => {
             let file_lookup = Files::find()
-                .filter(FilesColumn::FullPath.like(&path.to_str().unwrap()))
+                .filter(FilesColumn::FullPath.like(path.to_str().unwrap()))
                 .one(db)
                 .await
                 .unwrap();
@@ -163,18 +159,16 @@ pub async fn update_entry(old_path: PathBuf, new_path: PathBuf) -> Result<(), ()
         old_path
             .strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
             .unwrap()
-            .to_path_buf(),
     );
 
     let new_path = PathBuf::from("/").join(
         new_path
             .strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
             .unwrap()
-            .to_path_buf(),
     );
 
     let dir_lookup = Dirs::find()
-        .filter(DirsColumn::FullPath.like(&old_path.to_str().unwrap()))
+        .filter(DirsColumn::FullPath.like(old_path.to_str().unwrap()))
         .one(db)
         .await
         .unwrap();
@@ -188,7 +182,7 @@ pub async fn update_entry(old_path: PathBuf, new_path: PathBuf) -> Result<(), ()
         }
         None => {
             let file_lookup = Files::find()
-                .filter(FilesColumn::FullPath.like(&old_path.to_str().unwrap()))
+                .filter(FilesColumn::FullPath.like(old_path.to_str().unwrap()))
                 .one(db)
                 .await
                 .unwrap();
@@ -222,11 +216,10 @@ pub async fn get_dir_contents(path: PathBuf) -> (Vec<FilesModel>, Vec<DirsModel>
     let path = PathBuf::from("/").join(
         path.strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
             .unwrap()
-            .to_path_buf(),
     );
 
     let dir_lookup = Dirs::find()
-        .filter(DirsColumn::FullPath.like(&path.to_str().unwrap()))
+        .filter(DirsColumn::FullPath.like(path.to_str().unwrap()))
         .one(db)
         .await
         .unwrap();
