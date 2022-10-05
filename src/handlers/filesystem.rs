@@ -1,10 +1,13 @@
 use crate::{create_entry, delete_entry, update_entry};
-use notify::{Watcher, RecommendedWatcher, RecursiveMode, Config, event::{Event, EventKind, ModifyKind}};
+use notify::{
+    event::{Event, EventKind, ModifyKind},
+    Config, RecommendedWatcher, RecursiveMode, Watcher,
+};
 use std::{
     fs,
     path::{Path, PathBuf},
-    sync::mpsc::channel,
 };
+use tokio::sync::broadcast::Receiver;
 
 use crate::CONFIG;
 
@@ -21,11 +24,19 @@ pub fn normalize_path(file_path: PathBuf) -> PathBuf {
     Path::new(&CONFIG.get().unwrap().storage.storage_dir).join(file_path)
 }
 
-pub async fn watch_fs() {
-    let (sender, reciever) = channel();
+pub fn strip_storage_dir(file_path: PathBuf) -> PathBuf {
+    Path::new("/").join(
+        file_path
+            .strip_prefix(&CONFIG.get().unwrap().storage.storage_dir)
+            .unwrap(),
+    )
+}
+
+pub async fn watch_fs(mut shutdown_receiver: Receiver<()>) {
+    let (sender, receiver) = std::sync::mpsc::channel();
 
     let mut watcher = RecommendedWatcher::new(sender, Config::default()).unwrap();
-    
+
     watcher
         .watch(
             &PathBuf::from(&CONFIG.get().unwrap().storage.storage_dir),
@@ -33,17 +44,26 @@ pub async fn watch_fs() {
         )
         .unwrap();
 
-    for res in reciever {
-        match res {
-            Ok(event) => {
-                sync_db(event).await;
-            },
-            Err(e) => println!("watch error: {:?}", e),
+    loop {
+        if shutdown_receiver.try_recv().is_ok() {
+            break;
+        }
+
+        let try_recv = receiver.try_recv();
+
+        if let Ok(res) = try_recv {
+            match res {
+                Ok(event) => {
+                    sync_db(event).await;
+                }
+                Err(e) => println!("watch error: {:?}", e),
+            }
         }
     }
 }
 
 pub async fn sync_db(event: Event) {
+    println!("Syncing DB - {:?}", event);
     match event.kind {
         EventKind::Create(_) => {
             let create_path = event.paths.into_iter().next().unwrap();

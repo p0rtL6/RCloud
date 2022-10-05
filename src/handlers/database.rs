@@ -5,7 +5,8 @@ use sea_orm::{
 use std::path::{Component, PathBuf};
 
 use crate::{
-    dirs_table::prelude::*, files_table::prelude::*, Dirs, Files, CONFIG, DATABASE_CONNECTION,
+    dirs_table::prelude::*, files_table::prelude::*, strip_storage_dir, Dirs, Files, CONFIG,
+    DATABASE_CONNECTION,
 };
 
 pub async fn create_schema() {
@@ -158,13 +159,13 @@ pub async fn update_entry(old_path: PathBuf, new_path: PathBuf) -> Result<(), ()
     let old_path = PathBuf::from("/").join(
         old_path
             .strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
-            .unwrap()
+            .unwrap(),
     );
 
     let new_path = PathBuf::from("/").join(
         new_path
             .strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
-            .unwrap()
+            .unwrap(),
     );
 
     let dir_lookup = Dirs::find()
@@ -215,7 +216,7 @@ pub async fn get_dir_contents(path: PathBuf) -> (Vec<FilesModel>, Vec<DirsModel>
 
     let path = PathBuf::from("/").join(
         path.strip_prefix(&CONFIG.get().unwrap().storage.path_prefix)
-            .unwrap()
+            .unwrap(),
     );
 
     let dir_lookup = Dirs::find()
@@ -243,15 +244,31 @@ pub async fn get_dir_contents(path: PathBuf) -> (Vec<FilesModel>, Vec<DirsModel>
     }
 }
 
-pub async fn query() {
-    let files_response = Files::find()
-        .all(DATABASE_CONNECTION.get().unwrap())
+pub async fn ls_dir(path: PathBuf) -> Vec<serde_json::Value> {
+    let db = DATABASE_CONNECTION.get().unwrap();
+    let stripped_path = strip_storage_dir(path);
+    let folder = Dirs::find()
+        .filter(DirsColumn::FullPath.eq(stripped_path.to_str()))
+        .one(db)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let mut child_files: Vec<serde_json::Value> = Files::find()
+        .filter(FilesColumn::ParentDirId.eq(folder.dir_id))
+        .into_json()
+        .all(db)
         .await
         .unwrap();
-    let dirs_response = Dirs::find()
-        .all(DATABASE_CONNECTION.get().unwrap())
+
+    let mut child_folders: Vec<serde_json::Value> = Dirs::find()
+        .filter(DirsColumn::ParentDirId.eq(folder.dir_id))
+        .into_json()
+        .all(db)
         .await
         .unwrap();
-    dbg!(&files_response);
-    dbg!(&dirs_response);
+
+    child_files.append(&mut child_folders);
+
+    child_files
 }

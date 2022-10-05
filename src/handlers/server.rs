@@ -1,13 +1,12 @@
-use actix_files;
-use actix_files::NamedFile;
-use actix_multipart::Multipart;
 use std::path::Path;
+
+use actix_files;
+use actix_multipart::Multipart;
 use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
-use serde::{Deserialize, Serialize};
 use actix_web::{
     cookie::Key,
     dev::{Server, ServiceRequest},
-    get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest
+    get, post, web, App, HttpRequest, HttpResponse, HttpServer,
 };
 use actix_web_httpauth::{
     extractors::{
@@ -16,8 +15,10 @@ use actix_web_httpauth::{
     },
     middleware::HttpAuthentication,
 };
+use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
 
-use crate::{CONFIG, normalize_path};
+use crate::{new_file, normalize_path, CONFIG};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Auth {
@@ -25,41 +26,42 @@ pub struct Auth {
     password: String,
 }
 
-// #[get("/api/files")]
-// pub async fn ls_files() -> impl Responder {
-//     // List files in home dir
-//     return HttpResponse::Ok().body(serde_json::to_string(&response).unwrap());
-// }
-//
 #[get("/api/files/{file_path:.*}")]
-pub async fn get_file(req: HttpRequest, session: Session) -> Result<NamedFile, actix_web::Error> {
+pub async fn get_file(req: HttpRequest, session: Session) -> HttpResponse {
     if session.get::<i32>("Authenticated").unwrap().is_none() {
         session.insert("Authenticated", 1).unwrap();
     }
-    println!("Endpoint Hit");
-    let file_path = normalize_path(req.match_info().query("file_path").parse().unwrap());
-    Ok(NamedFile::open(file_path)?)
+    let path = normalize_path(req.match_info().query("file_path").parse().unwrap());
+    if path.is_file() {
+        let file_contents = std::fs::read(path).unwrap();
+        HttpResponse::Ok().body(file_contents)
+    } else if path.is_dir() {
+        HttpResponse::Ok().body(serde_json::to_string(&crate::ls_dir(path).await).unwrap())
+    } else {
+        HttpResponse::NotFound().finish()
+    }
 }
 
-// #[post("/upload/{directory:.*}")]
-// async fn upload(
-//     mut payload: Multipart,
-//     path: web::Path<(String,)>,
-// ) -> Result<HttpResponse, actix_multipart::MultipartError> {
-//     while let Some(item) = payload.next().await {
-//         let mut field = item?;
-//         let file_path: String = path.0.to_owned();
-//         for file in field.next().await {
-//             new_file(
-//                 Path::new(&file_path).join(field.content_disposition().get_filename().unwrap()),
-//                 file.unwrap().to_vec(),
-//             );
-//         }
-//     }
-//
-//     Ok(HttpResponse::Ok().into())
-// }
-//
+#[post("/upload/{directory:.*}")]
+async fn upload(
+    mut payload: Multipart,
+    path: web::Path<(String,)>,
+) -> Result<HttpResponse, actix_multipart::MultipartError> {
+    while let Some(item) = payload.next().await {
+        let mut field = item?;
+        let file_path: String = path.0.to_owned();
+        field.next().await.into_iter().for_each(|file| {
+            new_file(
+                Path::new(&file_path).join(field.content_disposition().get_filename().unwrap()),
+                file.unwrap().to_vec(),
+            )
+            .unwrap();
+        });
+    }
+
+    Ok(HttpResponse::Ok().into())
+}
+
 pub fn start_server() -> Server {
     let secret_key = Key::generate();
     HttpServer::new(move || {
@@ -70,11 +72,10 @@ pub fn start_server() -> Server {
             ))
             .wrap(HttpAuthentication::basic(validator))
             .service(get_file)
-            // .service(ls_files)
             // .service(upload)
-            .service(actix_files::Files::new("/raw/files", "./files"))
+            .service(actix_files::Files::new("/raw/files", "./files").show_files_listing())
     })
-    .bind(("127.0.0.1", 8080))
+    .bind(("127.0.0.1", 8888))
     .unwrap()
     .run()
 }
@@ -83,9 +84,7 @@ pub async fn validator(
     req: ServiceRequest,
     credentials: BasicAuth,
 ) -> Result<ServiceRequest, actix_web::Error> {
-    let config = req
-        .app_data::<HttpConfig>().cloned()
-        .unwrap_or_default();
+    let config = req.app_data::<HttpConfig>().cloned().unwrap_or_default();
 
     let username: &str = credentials.user_id();
     let password: &str = credentials
@@ -100,4 +99,3 @@ pub async fn validator(
 
     Err(AuthenticationError::from(config).into())
 }
-

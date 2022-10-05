@@ -2,7 +2,7 @@
 
 use sea_orm::entity::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "dirs")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
@@ -34,6 +34,18 @@ impl Related<Entity> for Entity {
 impl Related<crate::Files> for Entity {
     fn to() -> RelationDef {
         crate::FilesRelation::Dirs.def()
+    }
+}
+
+pub struct SelfReferencingLink;
+
+impl Linked for SelfReferencingLink {
+    type FromEntity = Entity;
+
+    type ToEntity = Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![Relation::SelfRef.def()]
     }
 }
 

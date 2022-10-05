@@ -1,4 +1,3 @@
-use actix_web::{App, HttpServer};
 use once_cell::sync::OnceCell;
 use sea_orm::{Database, DatabaseConnection};
 
@@ -16,7 +15,7 @@ pub use handlers::server::*;
 pub static DATABASE_CONNECTION: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     let config = Config::from_toml("./config.toml");
 
@@ -31,12 +30,19 @@ async fn main() -> std::io::Result<()> {
     create_schema().await;
     create_root_dir().await;
 
-    watch_fs().await;
+    let (shutdown_sender, shutdown_receiver) = tokio::sync::broadcast::channel(1);
 
-    start_server().await
+    tokio::spawn(async move {
+        start_server().await.unwrap();
+    });
 
-    // HttpServer::new(App::new)
-        // .bind(("127.0.0.1", 8888))?
-        // .run()
-        // .await
+    tokio::select! {
+        biased;
+        _ = tokio::signal::ctrl_c() => { // This broke again :(
+            shutdown_sender.send(()).unwrap();
+        }
+        _ = watch_fs(shutdown_receiver) => {},
+    }
+
+    Ok(())
 }
