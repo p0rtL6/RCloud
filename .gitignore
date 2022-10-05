@@ -3,3 +3,7 @@
 /files
 /logs
 config.toml
+/database/files.db
+/database/files.db-shm
+/database/files.db-wal
+/database/db
