@@ -7,4 +7,4 @@ path = "sqlite://database/files.db"
 
 [storage]
 storage_dir = "files/"
-path_prefix = "/home/user/cloud/files/"
+path_prefix = "/home/user/RCloud/files/"
