@@ -71,6 +71,7 @@ pub fn start_server() -> Server {
                 secret_key.clone(),
             ))
             .wrap(HttpAuthentication::basic(validator))
+            .wrap(actix_cors::Cors::permissive())
             .service(get_file)
             // .service(upload)
             .service(actix_files::Files::new("/raw/files", "./files").show_files_listing())
